@@ -8,11 +8,10 @@ from .. import config, calibre_db
 
 log = logging.getLogger(__name__)
 
-# 直接硬编码API密钥（不推荐！）
-DEEPSEEK_API_KEY = "sk-2ff881dd266d4cfea9dbd52bd3510e85"  # ⚠️ 你的密钥
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_API_BASE = os.getenv(
     "DEEPSEEK_API_BASE",
-    "https://api.deepseek.com/v1/chat/completions",
+    "https://api.deepseek.com/v1/chat/completions",  # 按 DeepSeek 官方文档需要可自行修改
 )
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
@@ -50,8 +49,7 @@ def _build_book_context(book) -> str:
 
 
 def _call_deepseek(system_prompt: str, user_prompt: str) -> str:
-    # 检查API密钥是否存在
-    if not DEEPSEEK_API_KEY or DEEPSEEK_API_KEY.strip() == "":
+    if not DEEPSEEK_API_KEY:
         raise RuntimeError("DEEPSEEK_API_KEY 未配置")
 
     payload = {
@@ -67,19 +65,16 @@ def _call_deepseek(system_prompt: str, user_prompt: str) -> str:
         "Content-Type": "application/json",
     }
 
+    resp = requests.post(DEEPSEEK_API_BASE, headers=headers, json=payload, timeout=40)
+    resp.raise_for_status()
     try:
-        resp = requests.post(DEEPSEEK_API_BASE, headers=headers, json=payload, timeout=40)
-        resp.raise_for_status()
-        try:
-            data = resp.json()
-        except ValueError:
-            log.error("DeepSeek 响应不是合法 JSON，status=%s, text=%s",
-                     resp.status_code, resp.text[:500])
-            raise ValueError("deepseek_invalid_json")
-        return data["choices"][0]["message"]["content"].strip()
-    except requests.exceptions.RequestException as e:
-        log.error(f"调用DeepSeek API失败: {e}")
-        raise RuntimeError(f"API调用失败: {str(e)}")
+        data = resp.json()
+    except ValueError:
+        # DeepSeek 返回的不是合法 JSON，打印原始内容帮助排查
+        log.error("DeepSeek 响应不是合法 JSON，status=%s, text=%s",
+                  resp.status_code, resp.text[:500])
+        raise ValueError("deepseek_invalid_json")
+    return data["choices"][0]["message"]["content"].strip()
 
 
 def get_book_summary(book_id: int) -> str:
