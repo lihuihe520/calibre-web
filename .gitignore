@@ -35,3 +35,7 @@ gdrive_credentials
 client_secrets.json
 gmail.json
 /.key
+"calibre-web-env/" 
+".venv/" 
+"calibre-web-env/" 
+"__pycache__/" 

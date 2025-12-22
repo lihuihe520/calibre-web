@@ -183,6 +183,74 @@ def toggle_read(book_id):
     else:
         return message
 
+# 在web.py中添加路由
+
+@web.route("/ajax/save_progress", methods=['POST'])
+@user_login_required  # 确保登录用户才能使用
+def save_progress():
+    try:
+        data = request.json
+        user_id = current_user.id
+        book_id = data.get('book_id')
+        format = data.get('format', '').lower()
+        progress = data.get('progress')
+        progress_percent = data.get('progress_percent')
+
+        if not all([book_id, format, progress]):
+            return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+        # 查询是否已有进度记录
+        progress_record = ub.session.query(ub.ReadingProgress).filter(
+            ub.ReadingProgress.user_id == user_id,
+            ub.ReadingProgress.book_id == book_id,
+            ub.ReadingProgress.format == format
+        ).first()
+
+        if progress_record:
+            # 更新现有记录
+            progress_record.progress = progress
+            progress_record.progress_percent = progress_percent
+        else:
+            # 创建新记录
+            new_progress = ub.ReadingProgress(
+                user_id=user_id,
+                book_id=book_id,
+                format=format,
+                progress=progress,
+                progress_percent=progress_percent
+            )
+            ub.session.add(new_progress)
+        
+        ub.session.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        ub.session.rollback()
+        log.error(f"Error saving progress: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@web.route("/ajax/get_progress/<int:book_id>/<string:format>")
+@user_login_required
+def get_progress(book_id, format):
+    try:
+        progress_record = ub.session.query(ub.ReadingProgress).filter(
+            ub.ReadingProgress.user_id == current_user.id,
+            ub.ReadingProgress.book_id == book_id,
+            ub.ReadingProgress.format == format.lower()
+        ).first()
+
+        if progress_record:
+            return jsonify({
+                "status": "success",
+                "progress": progress_record.progress,
+                "progress_percent": progress_record.progress_percent
+            })
+        else:
+            return jsonify({"status": "success", "progress": None})  # 无记录返回空
+    except Exception as e:
+        log.error(f"Error getting progress: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @web.route("/ajax/togglearchived/<int:book_id>", methods=['POST'])
 @user_login_required
