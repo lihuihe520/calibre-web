@@ -47,6 +47,12 @@ def remove_prefix(text, prefix):
 def get_redirect_location(next, endpoint, **values):
     target = next or url_for(endpoint, **values)
     adapter = current_app.url_map.bind(urlparse(request.host_url).netloc)
-    if not len(adapter.allowed_methods(remove_prefix(target, request.environ.get('HTTP_X_SCRIPT_NAME',"")))):
+    try:
+        allowed_methods = adapter.allowed_methods(remove_prefix(target, request.environ.get('HTTP_X_SCRIPT_NAME',"")))
+        # 如果URL没有对应的路由或不允许任何方法，则使用默认页面
+        if not allowed_methods or 'GET' not in allowed_methods:
+            target = url_for(endpoint, **values)
+    except Exception:
+        # 如果出现任何异常（如404），也使用默认页面
         target = url_for(endpoint, **values)
     return target

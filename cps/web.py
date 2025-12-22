@@ -229,7 +229,27 @@ def save_progress():
             )
             ub.session.add(new_progress)
         
-        ub.session.commit()
+        # 同时更新阅读状态
+        read_book = ub.session.query(ub.ReadBook).filter(
+            ub.ReadBook.user_id == user_id,
+            ub.ReadBook.book_id == book_id
+        ).first()
+        
+        if not read_book:
+            read_book = ub.ReadBook(user_id=user_id, book_id=book_id)
+            ub.session.add(read_book)
+        
+        # 根据进度百分比更新阅读状态
+        if progress_percent is not None:
+            if progress_percent >= 95:  # 进度达到95%以上视为已完成
+                read_book.read_status = ub.ReadBook.STATUS_FINISHED
+            elif progress_percent > 5:  # 进度超过5%视为正在阅读
+                read_book.read_status = ub.ReadBook.STATUS_IN_PROGRESS
+                if read_book.times_started_reading == 0:
+                    read_book.times_started_reading = 1
+                    read_book.last_time_started_reading = datetime.now(timezone.utc)
+        
+        ub.session_commit()
         return jsonify({"status": "success"})
     except Exception as e:
         ub.session.rollback()
