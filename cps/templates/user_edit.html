@@ -48,6 +48,17 @@
             {% endfor %}
         </select>
     </div>
+    {% if profile and not new_user %}
+    <div class="form-group">
+      <label for="recommendation_preference">{{_('Recommendation Preference')}}</label>
+      <select name="recommendation_preference" id="recommendation_preference" class="form-control">
+        <option value="balanced" {% if recommendation_preference == "balanced" %}selected{% endif %}>{{ _('Balanced (Content + Collaborative)') }}</option>
+        <option value="popular" {% if recommendation_preference == "popular" %}selected{% endif %}>{{ _('Popular (Focus on Trending)') }}</option>
+        <option value="niche" {% if recommendation_preference == "niche" %}selected{% endif %}>{{ _('Niche (Focus on Similar Content)') }}</option>
+      </select>
+      <small class="form-text text-muted">{{_('Adjust how recommendations are generated for you')}}</small>
+    </div>
+    {% endif %}
     {% if registered_oauth.keys()| length > 0 and not new_user and profile %}
       {% for id, name in registered_oauth.items() %}
     <div class="form-group">

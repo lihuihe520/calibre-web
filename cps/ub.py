@@ -552,6 +552,41 @@ def filename(context):
         return context.get_current_parameters()['uuid'] + '.' + file_format
 
 
+class UserRecommendationPreference(Base):
+    """用户推荐偏好设置"""
+    __tablename__ = 'user_recommendation_preference'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('user.id'), unique=True, nullable=False)
+    preference = Column(String, default='balanced', nullable=False)  # balanced, popular, niche
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class BookRecommendation(Base):
+    """书籍推荐结果缓存"""
+    __tablename__ = 'book_recommendation'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    book_id = Column(Integer, nullable=False)
+    recommended_book_id = Column(Integer, nullable=False)
+    similarity_score = Column(Float, nullable=False)
+    recommendation_reason = Column(String, nullable=False)
+    recommendation_type = Column(String, nullable=False)  # content, collaborative, hybrid
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class UserRecommendation(Base):
+    """用户个性化推荐结果缓存"""
+    __tablename__ = 'user_recommendation'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    book_id = Column(Integer, nullable=False)
+    recommendation_score = Column(Float, nullable=False)
+    recommendation_reason = Column(String, nullable=False)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
 class Thumbnail(Base):
     __tablename__ = 'thumbnail'
 
@@ -572,6 +607,12 @@ def add_missing_tables(engine, _session):
         ArchivedBook.__table__.create(bind=engine)
     if not engine.dialect.has_table(engine.connect(), "thumbnail"):
         Thumbnail.__table__.create(bind=engine)
+    if not engine.dialect.has_table(engine.connect(), "user_recommendation_preference"):
+        UserRecommendationPreference.__table__.create(bind=engine)
+    if not engine.dialect.has_table(engine.connect(), "book_recommendation"):
+        BookRecommendation.__table__.create(bind=engine)
+    if not engine.dialect.has_table(engine.connect(), "user_recommendation"):
+        UserRecommendation.__table__.create(bind=engine)
 
 
 # migrate all settings missing in registration table
