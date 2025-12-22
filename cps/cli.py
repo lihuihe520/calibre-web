@@ -76,7 +76,39 @@ class CliParameter(object):
                                                             'in advance and exits Calibre-Web')
         parser.add_argument('-r', action='store_true', help='Enable public database reconnect '
                                                             'route under /reconnect')
-        args = parser.parse_args()
+
+        # ===== 🔑 核心改动在这里 =====
+        args, _ = parser.parse_known_args()
+
+
+        # 新增内容
+        def arg_parser(self):
+            parser = argparse.ArgumentParser(
+                description='Calibre Web is a web app providing '
+                            'a interface for browsing, reading and downloading eBooks\n',
+                prog='cps.py'
+            )
+
+            # ===== 原参数定义保持不变 =====
+            parser.add_argument('-p', metavar='path', help='path and name to settings db, e.g. /opt/cw.db')
+            parser.add_argument('-g', metavar='path', help='path and name to gdrive db, e.g. /opt/gd.db')
+            parser.add_argument('-c', metavar='path', help='path and name to SSL certfile')
+            parser.add_argument('-k', metavar='path', help='path and name to SSL keyfile')
+            parser.add_argument('-o', metavar='path', help='path and name Calibre-Web logfile')
+            parser.add_argument('-v', '--version', action='version', version=version_info())
+            parser.add_argument('-i', metavar='ip-address', help='Server IP-Address to listen')
+            parser.add_argument('-m', action='store_true')
+            parser.add_argument('-s', metavar='user:pass')
+            parser.add_argument('-l', action='store_true')
+            parser.add_argument('-d', action='store_true')
+            parser.add_argument('-r', action='store_true')
+
+            # ===== 🔑 核心改动在这里 =====
+            if 'pytest' in sys.modules:
+                # pytest 环境下：忽略所有命令行参数
+                args = parser.parse_args([])
+            else:
+                args = parser.parse_args()
 
         self.logpath = args.o or ""
         self.settings_path = args.p or os.path.join(_CONFIG_DIR, DEFAULT_SETTINGS_FILE)
