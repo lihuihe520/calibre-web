@@ -23,6 +23,7 @@ import json
 import mimetypes
 import chardet  # dependency of requests
 import copy
+from datetime import datetime, timezone, timedelta
 from importlib.metadata import metadata
 
 from flask import Blueprint, jsonify, request, redirect, send_from_directory, make_response, flash, abort, url_for
@@ -282,6 +283,60 @@ def update_view():
     return "1", 200
 
 
+@web.route("/ajax/recommendation_preference", methods=["GET", "POST"])
+@user_login_required
+def update_recommendation_preference():
+    """获取或更新用户推荐偏好设置"""
+    if request.method == "GET":
+        # 获取当前偏好设置
+        user_pref = ub.session.query(ub.UserRecommendationPreference).filter(
+            ub.UserRecommendationPreference.user_id == current_user.id
+        ).first()
+        
+        preference = user_pref.preference if user_pref else 'balanced'
+        return jsonify({'preference': preference}), 200
+    
+    elif request.method == "POST":
+        # 更新偏好设置
+        data = request.get_json(silent=True)
+        if not data or 'preference' not in data:
+            return jsonify({'error': 'Invalid request'}), 400
+        
+        preference = data.get('preference', 'balanced')
+        if preference not in ['balanced', 'popular', 'niche']:
+            return jsonify({'error': 'Invalid preference value'}), 400
+        
+        try:
+            user_pref = ub.session.query(ub.UserRecommendationPreference).filter(
+                ub.UserRecommendationPreference.user_id == current_user.id
+            ).first()
+            
+            if user_pref:
+                user_pref.preference = preference
+                user_pref.last_updated = datetime.now(timezone.utc)
+            else:
+                user_pref = ub.UserRecommendationPreference(
+                    user_id=current_user.id,
+                    preference=preference
+                )
+                ub.session.add(user_pref)
+            
+            ub.session.commit()
+            
+            # 清除旧的推荐缓存，触发重新生成
+            ub.session.query(ub.UserRecommendation).filter(
+                ub.UserRecommendation.user_id == current_user.id
+            ).delete()
+            ub.session.commit()
+            
+            return jsonify({'success': True, 'preference': preference}), 200
+            
+        except Exception as e:
+            log.error("Error updating recommendation preference: %s", e)
+            ub.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+
 '''
 @web.route("/ajax/getcomic/<int:book_id>/<book_format>/<int:page>")
 @user_login_required
@@ -495,8 +550,64 @@ def render_books_list(data, sort_param, book_id, page):
                                                                 db.books_series_link,
                                                                 db.Books.id == db.books_series_link.c.book,
                                                                 db.Series)
+        
+        # 添加个性化推荐
+        recommended_books = []
+        if current_user.is_authenticated and current_user.id:
+            try:
+                from .recommendation import get_recommendation_engine
+                # calibre_db 已在文件顶部导入，不需要重复导入
+                
+                # 获取用户偏好设置
+                user_pref = ub.session.query(ub.UserRecommendationPreference).filter(
+                    ub.UserRecommendationPreference.user_id == current_user.id
+                ).first()
+                preference = user_pref.preference if user_pref else 'balanced'
+                
+                # 检查缓存
+                cached_recs = ub.session.query(ub.UserRecommendation).filter(
+                    and_(
+                        ub.UserRecommendation.user_id == current_user.id,
+                        ub.UserRecommendation.last_updated >= datetime.now(timezone.utc) - timedelta(hours=24)
+                    )
+                ).order_by(ub.UserRecommendation.recommendation_score.desc()).limit(10).all()
+                
+                if cached_recs:
+                    # 使用缓存的推荐
+                    for rec in cached_recs:
+                        book = calibre_db.session.query(db.Books).filter(db.Books.id == rec.book_id).first()
+                        if book:
+                            recommended_books.append((book, rec.recommendation_score, rec.recommendation_reason))
+                else:
+                    # 生成新推荐
+                    engine = get_recommendation_engine(calibre_db.session)
+                    recommended_books = engine.get_user_recommendations(current_user.id, limit=10, preference=preference)
+                    
+                    # 缓存推荐结果
+                    if recommended_books:
+                        # 删除旧缓存
+                        ub.session.query(ub.UserRecommendation).filter(
+                            ub.UserRecommendation.user_id == current_user.id
+                        ).delete()
+                        
+                        # 保存新缓存
+                        for book, score, reason in recommended_books:
+                            user_rec = ub.UserRecommendation(
+                                user_id=current_user.id,
+                                book_id=book.id,
+                                recommendation_score=score,
+                                recommendation_reason=reason
+                            )
+                            ub.session.add(user_rec)
+                        ub.session.commit()
+            except Exception as e:
+                log.error("Error generating recommendations: %s", e)
+                import traceback
+                log.debug("Recommendation error traceback: %s", traceback.format_exc())
+        
         return render_title_template('index.html', random=random, entries=entries, pagination=pagination,
-                                     title=_("Books"), page=website, order=order[1])
+                                     title=_("Books"), page=website, order=order[1],
+                                     recommended_books=recommended_books)
 
 
 def render_rated_books(page, book_id, order):
@@ -1623,8 +1734,34 @@ def profile():
         oauth_status = None
         local_oauth_check = {}
 
+    # 获取推荐偏好设置
+    user_pref = ub.session.query(ub.UserRecommendationPreference).filter(
+        ub.UserRecommendationPreference.user_id == current_user.id
+    ).first()
+    recommendation_preference = user_pref.preference if user_pref else 'balanced'
+
     if request.method == "POST":
         change_profile(kobo_support, local_oauth_check, oauth_status, translations, languages)
+        # 处理推荐偏好设置
+        pref_value = request.form.get('recommendation_preference', 'balanced')
+        if pref_value in ['balanced', 'popular', 'niche']:
+            if user_pref:
+                user_pref.preference = pref_value
+                user_pref.last_updated = datetime.now(timezone.utc)
+            else:
+                user_pref = ub.UserRecommendationPreference(
+                    user_id=current_user.id,
+                    preference=pref_value
+                )
+                ub.session.add(user_pref)
+            ub.session.commit()
+            # 清除旧的推荐缓存
+            ub.session.query(ub.UserRecommendation).filter(
+                ub.UserRecommendation.user_id == current_user.id
+            ).delete()
+            ub.session.commit()
+            recommendation_preference = pref_value
+    
     return render_title_template("user_edit.html",
                                  translations=translations,
                                  profile=1,
@@ -1635,7 +1772,8 @@ def profile():
                                  title=_("%(name)s's Profile", name=current_user.name),
                                  page="me",
                                  registered_oauth=local_oauth_check,
-                                 oauth_status=oauth_status)
+                                 oauth_status=oauth_status,
+                                 recommendation_preference=recommendation_preference)
 
 
 # ###################################Show single book ##################################################################
@@ -1770,13 +1908,62 @@ def show_book(book_id):
             if media_format.format.lower() in constants.EXTENSIONS_AUDIO:
                 entry.audio_entries.append(media_format.format.lower())
 
+        # 添加相似书籍推荐
+        similar_books = []
+        try:
+            from .recommendation import get_recommendation_engine
+            # calibre_db 已在文件顶部导入，不需要重复导入
+            
+            # 检查缓存
+            cached_similar = ub.session.query(ub.BookRecommendation).filter(
+                and_(
+                    ub.BookRecommendation.book_id == book_id,
+                    ub.BookRecommendation.last_updated >= datetime.now(timezone.utc) - timedelta(hours=24)
+                )
+            ).order_by(ub.BookRecommendation.similarity_score.desc()).limit(5).all()
+            
+            if cached_similar:
+                # 使用缓存的推荐
+                for rec in cached_similar:
+                    book = calibre_db.session.query(db.Books).filter(db.Books.id == rec.recommended_book_id).first()
+                    if book:
+                        similar_books.append((book, rec.similarity_score, rec.recommendation_reason))
+            else:
+                # 生成新推荐
+                engine = get_recommendation_engine(calibre_db.session)
+                similar_books = engine.get_similar_books(book_id, limit=5)
+                
+                # 缓存推荐结果
+                if similar_books:
+                    # 删除旧缓存
+                    ub.session.query(ub.BookRecommendation).filter(
+                        ub.BookRecommendation.book_id == book_id
+                    ).delete()
+                    
+                    # 保存新缓存
+                    for book, score, reason in similar_books:
+                        book_rec = ub.BookRecommendation(
+                            book_id=book_id,
+                            recommended_book_id=book.id,
+                            similarity_score=score,
+                            recommendation_reason=reason,
+                            recommendation_type='content'
+                        )
+                        ub.session.add(book_rec)
+                    ub.session.commit()
+        except Exception as e:
+            log.error("Error generating similar books: %s", e)
+            import traceback
+            log.debug("Similar books error traceback: %s", traceback.format_exc())
+
         return render_title_template('detail.html',
                                      entry=entry,
                                      cc=cc,
                                      is_xhr=request.headers.get('X-Requested-With') == 'XMLHttpRequest',
                                      title=entry.title,
                                      books_shelfs=book_in_shelves,
-                                     page="book")
+                                     page="book",
+                                     similar_books=similar_books)
     else:
         log.debug("Selected book is unavailable. File does not exist or is not accessible")
         flash(_("Oops! Selected book is unavailable. File does not exist or is not accessible"),

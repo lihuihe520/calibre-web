@@ -132,6 +132,39 @@
     {% endif %}
     </div>
    {% endif %}
+  {% if recommended_books and recommended_books|length > 0 %}
+  <div class="recommended-books">
+    <h2 class="recommended-books-title">{{_('Personalized Recommendations')}}</h2>
+    <p class="recommendation-note">{{_('Based on your reading history and preferences')}}</p>
+    <div class="row display-flex">
+      {% for book, score, reason in recommended_books %}
+      <div class="col-sm-3 col-lg-2 col-xs-6 book session" id="books_recommended">
+        <div class="cover">
+          <a href="{{ url_for('web.show_book', book_id=book.id) }}" {% if simple==false %}data-toggle="modal" data-target="#bookDetailsModal" data-remote="false"{% endif %}>
+            <span class="img" title="{{ book.title }}">
+              {{ image.book_cover(book) }}
+            </span>
+          </a>
+        </div>
+        <div class="meta">
+          <a href="{{ url_for('web.show_book', book_id=book.id) }}" {% if simple==false %}data-toggle="modal" data-target="#bookDetailsModal" data-remote="false"{% endif %}>
+            <p title="{{ book.title }}" class="title">{{book.title|shortentitle}}</p>
+          </a>
+          <p class="author">
+            {% for author in book.authors %}
+              {% if not loop.first %}<span>&amp;</span>{% endif %}
+              <a class="author-name" href="{{url_for('web.books_list', data='author', sort_param='stored', book_id=author.id) }}">{{author.name.replace('|',',')|shortentitle(30)}}</a>
+            {% endfor %}
+          </p>
+          <p class="recommendation-reason" title="{{ reason }}">
+            <small><span class="glyphicon glyphicon-info-sign"></span> {{ reason }}</small>
+          </p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
   <div class="row display-flex">
     {% if entries[0] %}
     {% for entry in entries %}
