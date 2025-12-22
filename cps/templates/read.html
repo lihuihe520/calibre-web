@@ -18,6 +18,31 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/popup.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+    <style>
+        /* 同步状态提示样式 */
+        #sync-status {
+            display: none;
+            color: #4CAF50; /* 绿色提示 */
+            margin-left: 8px;
+            font-size: 0.9em;
+            align-items: center;
+        }
+        /* 进度显示区域布局优化 */
+        #progress-container {
+            display: flex;
+            align-items: center;
+            position: fixed;
+            bottom: 15px;
+            right: 20px;
+            background: rgba(0,0,0,0.1);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        #progress {
+            margin: 0;
+            font-size: 0.9em;
+        }
+    </style>
 </head>
 
 <body>
@@ -62,7 +87,9 @@
 	        <div id="title-controls">
 	            <a id="bookmark" class="icon-bookmark-empty">Bookmark</a>
 	            <a id="setting" class="icon-cog">Settings</a>
-	            <a id="fullscreen" class="icon-resize-full">Fullscreen</a>            
+	            <a id="fullscreen" class="icon-resize-full">Fullscreen</a>
+	            <!-- 同步状态提示（标题栏版） -->
+	            <span id="sync-status-title" style="display:none; color: #4CAF50; margin-left: 10px;">✓ 进度已同步</span>
 	        </div>
 	    </div>
 
@@ -70,7 +97,12 @@
 	    <div id="prev" class="arrow">‹</div>
 	    <div id="viewer"></div>
 	    <div id="next" class="arrow">›</div>
-	    <div id="progress">0%</div>
+	    <!-- 进度显示+同步状态容器 -->
+	    <div id="progress-container">
+	        <div id="progress">0%</div>
+	        <!-- 同步状态提示（进度条旁版） -->
+	        <span id="sync-status">✓ 已同步</span>
+	    </div>
 	    <div id="loader"><img src="{{ url_for('static', filename='img/loader.gif') }}"></div>
 	</div>
     <div class="modal md-effect-1" id="settings-modal">
@@ -129,7 +161,10 @@
             bookmarkUrl: "{{ url_for('web.set_bookmark', book_id=bookid, book_format=book_format) }}",
             bookUrl: "{{ url_for('web.serve_book', book_id=bookid, book_format=book_format, anyname='file.epub') }}",
             bookmark: "{{ bookmark.bookmark_key if bookmark != None }}",
-            useBookmarks: "{{ current_user.is_authenticated | tojson }}"
+            useBookmarks: "{{ current_user.is_authenticated | tojson }}",
+            // 新增：传递书籍ID和格式给前端JS（关键！）
+            bookId: "{{ bookid }}",
+            bookFormat: "{{ book_format }}"
         };
 
         window.themes = {
@@ -176,6 +211,8 @@
             document.getElementById("main").style.backgroundColor = themes[id]["bgColor"];
             document.getElementById("titlebar").style.color = themes[id]["title-color"] || "#fff";
             document.getElementById("progress").style.color = themes[id]["title-color"] || "#fff";
+            document.getElementById("sync-status").style.color = "#4CAF50"; // 同步状态保持绿色
+            document.getElementById("sync-status-title").style.color = "#4CAF50";
         }
 
         // font size settings logic

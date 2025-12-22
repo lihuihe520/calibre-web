@@ -44,6 +44,7 @@ from sqlalchemy import create_engine, exc, exists, event, text
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy import String, Integer, SmallInteger, Boolean, DateTime, Float, JSON
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.sql.expression import func
 try:
     # Compatibility with sqlalchemy 2.0
@@ -421,6 +422,23 @@ class ReadBook(Base):
     last_time_started_reading = Column(DateTime, nullable=True)
     times_started_reading = Column(Integer, default=0, nullable=False)
 
+# 在ub.py中添加以下模型（可放在ReadBook类下方）
+class ReadingProgress(Base):
+    __tablename__ = 'reading_progress'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)  # 关联用户
+    book_id = Column(Integer, nullable=False)  # 书籍ID
+    format = Column(String(10), nullable=False)  # 格式（epub/txt等）
+    progress = Column(String(255))  # 进度值（EPUB用CFI，TXT用偏移量）
+    progress_percent = Column(Float)  # 进度百分比（可选）
+    last_modified = Column(DateTime, default=lambda: datetime.now(timezone.utc), 
+                          onupdate=lambda: datetime.now(timezone.utc))  # 最后更新时间
+
+    # 联合唯一约束：同一用户的同一本书同一格式只存一条进度
+    __table_args__ = (
+        UniqueConstraint('user_id', 'book_id', 'format', name='_user_book_format_uc'),
+    )
 
 class Bookmark(Base):
     __tablename__ = 'bookmark'
