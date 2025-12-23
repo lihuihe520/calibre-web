@@ -158,7 +158,7 @@ def add_book_to_calibre(book_info, session):
         traceback.print_exc()
         if session:
             try:
-        session.rollback()
+                session.rollback()
             except:
                 pass
         return None
