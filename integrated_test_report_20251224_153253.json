@@ -1,0 +1,173 @@
+{
+  "timestamp": "2025-12-24T15:32:53.803465",
+  "base_url": "http://localhost:8083",
+  "summary": {
+    "total": 19,
+    "passed": 15,
+    "failed": 0,
+    "warned": 1,
+    "info": 2
+  },
+  "categories": {
+    "连接性": {
+      "passed": 1,
+      "failed": 0,
+      "warned": 0
+    },
+    "认证": {
+      "passed": 0,
+      "failed": 0,
+      "warned": 1
+    },
+    "AI模块": {
+      "passed": 7,
+      "failed": 0,
+      "warned": 0
+    },
+    "推荐系统": {
+      "passed": 6,
+      "failed": 0,
+      "warned": 0
+    },
+    "爬虫模块": {
+      "passed": 1,
+      "failed": 0,
+      "warned": 0
+    }
+  },
+  "results": [
+    {
+      "test_name": "TC-000: 服务可达性",
+      "status": "PASS",
+      "message": "服务运行在 http://localhost:8083",
+      "category": "连接性",
+      "timestamp": "2025-12-24T15:32:37.154513"
+    },
+    {
+      "test_name": "TC-001: 登录测试",
+      "status": "WARN",
+      "message": "无法通过标准方式登录，尝试直接访问",
+      "category": "认证",
+      "timestamp": "2025-12-24T15:32:37.464871"
+    },
+    {
+      "test_name": "TC-002: 书籍摘要 (Book 42)",
+      "status": "PASS",
+      "message": "状态码: 200, 响应时间: 0.04s, 文本长度: 4261",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:37.504580"
+    },
+    {
+      "test_name": "TC-002: API书籍摘要 (Book 42)",
+      "status": "PASS",
+      "message": "状态码: 200, 响应时间: 0.06s, 文本长度: 4260",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:37.560062"
+    },
+    {
+      "test_name": "TC-002: 书籍推荐 (Book 42)",
+      "status": "PASS",
+      "message": "状态码: 200, 响应时间: 0.04s, 文本长度: 4269",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:37.601046"
+    },
+    {
+      "test_name": "TC-002: API书籍推荐 (Book 42)",
+      "status": "PASS",
+      "message": "状态码: 200, 响应时间: 0.06s, 文本长度: 4268",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:37.660880"
+    },
+    {
+      "test_name": "TC-004: AI响应性能",
+      "status": "PASS",
+      "message": "平均: 0.06秒, 最大: 0.07秒, 最小: 0.05秒",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:46.864504"
+    },
+    {
+      "test_name": "TC-003: 不存在的书籍 (ID: 999999)",
+      "status": "INFO",
+      "message": "未返回错误，状态码: 200",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:46.949036"
+    },
+    {
+      "test_name": "TC-003: 无效书籍ID (ID: invalid)",
+      "status": "PASS",
+      "message": "正确处理错误，状态码: 404",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:46.989188"
+    },
+    {
+      "test_name": "TC-003: 零值书籍ID (ID: 0)",
+      "status": "INFO",
+      "message": "未返回错误，状态码: 200",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:47.078448"
+    },
+    {
+      "test_name": "TC-003: 负值书籍ID (ID: -1)",
+      "status": "PASS",
+      "message": "正确处理错误，状态码: 404",
+      "category": "AI模块",
+      "timestamp": "2025-12-24T15:32:47.121920"
+    },
+    {
+      "test_name": "TC-101: 数据库配置检查",
+      "status": "PASS",
+      "message": "数据库路径: D:\\Tools\\Calibre\\Calibre 书库",
+      "category": "推荐系统",
+      "timestamp": "2025-12-24T15:32:53.575833"
+    },
+    {
+      "test_name": "TC-102: 数据库连接",
+      "status": "PASS",
+      "message": "连接成功，书籍总数: 10",
+      "category": "推荐系统",
+      "timestamp": "2025-12-24T15:32:53.584437"
+    },
+    {
+      "test_name": "TC-103: 书籍数据检查",
+      "status": "PASS",
+      "message": "书籍总数: 10",
+      "category": "推荐系统",
+      "timestamp": "2025-12-24T15:32:53.584437"
+    },
+    {
+      "test_name": "TC-104: 基于内容的推荐",
+      "status": "PASS",
+      "message": "为书籍 84 找到 5 本相似书籍",
+      "category": "推荐系统",
+      "timestamp": "2025-12-24T15:32:53.666421"
+    },
+    {
+      "test_name": "TC-105: 用户数据检查",
+      "status": "PASS",
+      "message": "用户数: 2, 阅读记录: 3",
+      "category": "推荐系统",
+      "timestamp": "2025-12-24T15:32:53.674532"
+    },
+    {
+      "test_name": "TC-106: 协同过滤推荐",
+      "status": "PASS",
+      "message": "为用户 1 生成 5 本推荐书籍",
+      "category": "推荐系统",
+      "timestamp": "2025-12-24T15:32:53.724014"
+    },
+    {
+      "test_name": "TC-200: 爬虫模块单元测试",
+      "status": "PASS",
+      "message": "运行: 5, 通过: 5, 失败: 0, 错误: 0",
+      "category": "爬虫模块",
+      "timestamp": "2025-12-24T15:32:53.803465"
+    },
+    {
+      "test_name": "TC-202: 爬虫API接口测试",
+      "status": "SKIP",
+      "message": "跳过测试：cw_advocate模块存在导入问题（AttributeError: __attrs__）",
+      "category": "爬虫模块",
+      "timestamp": "2025-12-24T15:32:53.803465"
+    }
+  ]
+}
