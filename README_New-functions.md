@@ -1,4 +1,4 @@
-# Calibre-Web 新增功能说明（集成版）
+# Calibre-Web 新增功能说明（集成版）（课程设计项目）
 仓库地址：https://github.com/lihuihe520/calibre-web
 
 本项目基于开源项目 **Calibre-Web** 进行二次开发，作为《软件工程 / 课程设计》实践项目，
