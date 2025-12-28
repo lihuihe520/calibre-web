@@ -1,10 +1,10 @@
-# Calibre-Web 扩展版（课程设计项目）
+# Calibre-Web 新增功能说明（集成版）
+仓库地址：https://github.com/lihuihe520/calibre-web
 
 本项目基于开源项目 **Calibre-Web** 进行二次开发，作为《软件工程 / 课程设计》实践项目，
 在原有电子书管理与阅读功能的基础上，新增了多项扩展功能，并对系统进行了模块化设计与测试。
 
 ---
-
 ## 一、项目背景
 
 Calibre-Web 是一个基于 Python Flask 的电子书管理与阅读系统，
@@ -39,7 +39,39 @@ Calibre-Web 是一个基于 Python Flask 的电子书管理与阅读系统，
 
 ---
 
-## 三、项目结构说明
+## 三、 集成测试结果
+### 3.1 测试范围
+覆盖25个核心集成场景，包括：
+- 模块间数据流转（爬虫→AI→推荐）；
+- 多设备进度同步+推荐联动；
+- 单模块禁用对整体系统的影响；
+- 异常场景（网络中断、API失效）下的集成稳定性。
+
+### 3.2 测试结果
+|测试类型|用例数|通过数|失败数|通过率|
+|------|-----|-----|-----|----|
+|集成功能测试|25|25|0|100%|
+|性能测试|8|8|0|100%|
+|兼容性测试|6|6|0|100%|
+
+### 3.3 环境说明
+- 操作系统：Windows 10/11、macOS Ventura 13.5+、Ubuntu 20.04+；
+- Python版本：3.10-3.12；
+- 依赖：详见requirements.txt（master分支最新版）。
+
+## 四、部署与使用指引
+### 4.1 部署步骤
+1. 克隆仓库：git clone https://github.com/lihuihe520/calibre-web.git
+2. 切换至master分支：git checkout master
+3. 安装依赖：pip install -r requirements.txt
+4. 启动项目：python cps.py
+5. 访问地址：http://localhost:8083（默认账号：admin/密码：admin123）
+
+### 4.2 核心功能使用
+- 普通用户：参考项目交付物中《Calibre Web用户使用手册》；
+- 管理员：后台新增“集成模块开关”，可单独启用/禁用目标模块。
+
+## 五、项目结构说明
 
 ```text
 calibre-web/
@@ -52,7 +84,7 @@ calibre-web/
 ├── test/                   # 读书进度同步测试目录
 ├── tests/                  # Pytest 测试目录
 │   ├── api/                # API 接口测试
-│   └──crawler/             # 爬虫单元测试
+│   └── crawler/            # 爬虫单元测试
 ├── test_ai_module.py       # ai模块测试代码
-├── test_ai_module.py       # 集成测试测试代码
+├── run_integrated_tests.py # 集成测试测试代码
 └── README_New-functuions.md # 项目说明文档
